@@ -7,15 +7,12 @@
             [io.pedestal.log :as log])
   (:gen-class))
 
-
 (def env
-  (let [base (if (System/getenv "DX_JAAS_CONFIG")
-               {:dataexchange-genegraph (System/getenv "DX_JAAS_CONFIG")}
-               (env/build-environment "974091131481"
-                                      ["dataexchange-genegraph"]))]
-    (assoc base
-           :kafka-user "User:2592237"
-           :kafka-consumer-group "genegraph-appender-1")))
+  (case (System/getenv "GENEGRAPH_PLATFORM")
+    "prod" (assoc (env/build-environment "974091131481" ["dataexchange-genegraph"])
+                  :kafka-user "User:2592237"
+                  :kafka-consumer-group "genegraph-appender-1")
+    {:dataexchange-genegraph (System/getenv "DX_JAAS_CONFIG")}))
 
 (def data-exchange
   {:type :kafka-cluster
