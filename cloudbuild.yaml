@@ -1,0 +1,25 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '.', '-t', 'kafka-topic-appender:$COMMIT_SHA']
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'tag', 'kafka-topic-appender:$COMMIT_SHA',
+  'us-east1-docker.pkg.dev/clingen-dx/genegraph-prod/kafka-topic-appender:$COMMIT_SHA']  
+- name: 'gcr.io/clingen-dx/git-image-updater'
+  secretEnv: ["GITHUB_TOKEN"]
+  args:
+    - '-c'
+    - |
+      git clone https://clingen-ci:$$GITHUB_TOKEN@github.com/clingen-data-model/architecture \
+      && cd architecture \
+      && /usr/bin/yq eval -i ".docker_image_tag = \"$COMMIT_SHA\"" ./helm/values/kafka-topic-appender/values-prod.yaml \
+      && git add -u \
+      && git -c user.name="Clingen CI Automation" -c user.email="clingendevs@broadinstitute.org" commit -m "bumping docker image for prod kafka-topic-appender" \
+      && git push origin master
+
+images:
+- 'us-east1-docker.pkg.dev/clingen-dx/genegraph-prod/kafka-topic-appender:$COMMIT_SHA'
+
+availableSecrets:
+  secretManager:
+  - versionName: projects/clingen-dx/secrets/clingen-ci-github-token/versions/1
+    env: GITHUB_TOKEN
