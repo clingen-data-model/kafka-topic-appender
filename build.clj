@@ -1,6 +1,7 @@
 (ns build
   "Build this thing."
-  (:require [clojure.tools.build.api :as b]))
+  (:require [clojure.tools.build.api :as b]
+            [clojure.java.process :as process]))
 
 (def defaults
   "The defaults to configure a build."
@@ -50,7 +51,53 @@
    (image-tag)
    "--push"))
 
+(defn kubernetes-deployment []
+  {:apiVersion "apps/v1"
+   :kind "Deployment"
+   :metadata {:name app-name}
+   :spec
+   {:selector {:matchLabels {:app app-name}}
+    :template
+    {:metadata {:labels {:app app-name}}
+     :spec
+     {:containers
+      [{:name app-name
+        :image (image-tag)
+        :env [{:name "GENEGRAPH_PLATFORM" :value "prod"}]
+        :ports [{:name "genegraph-port" :containerPort 8888}]
+        :readinessProbe {:httpGet {:path "/ready" :port "genegraph-port"}}
+        :resources {:requests {:memory "1Gi" :cpu "100m"}
+                    :limits {:memory "1Gi"}}}]
+      :tolerations [{:key "kubernetes.io/arch"
+                     :operator "Equal"
+                     :value "arm64"
+                     :effect "NoSchedule"}]
+      :affinity {:nodeAffinity {:requiredDuringSchedulingIgnoredDuringExecution
+                                {:nodeSelectorTerms
+                                 [{:matchExpressions
+                                   [{:key "kubernetes.io/arch"
+                                     :operator "In"
+                                     :values ["arm64"]}]}]}}}}}}})
+
+
+(defn kubernetes-apply
+  [_]
+  (let [p (process/start {:err :inherit} "kubectl" "apply" "-f" "-")
+        captured (process/io-task #(slurp (process/stdout p)))
+        exit (process/exit-ref p)]
+    (with-open [w (io/writer (process/stdin p))]
+      (run! #(json/write (%) w)
+            [kubernetes-deployment]))
+    (if (zero? @(process/exit-ref p))
+      (println @captured)
+      (println "non-zero exit code"))))
+
 (defn deploy
   [_]
   (uber nil)
-  (docker-push nil))
+  (docker-push nil)
+  (kubernetes-apply nil))
+
+(defn destroy
+  [_]
+  (process/exec {:err :stdout} "kubectl" "delete" "deployment" app-name))
