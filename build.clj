@@ -24,3 +24,33 @@
                           :src-dirs ["src"]
                           :ns-compile ['appender]))
     (b/uber        project)))
+
+(def app-name "kafka-topic-appender")
+
+(defn image-tag []
+  (str
+   "us-east1-docker.pkg.dev/"
+   "clingen-dx/"
+   "genegraph-prod/"
+   app-name
+   ":v"
+   (b/git-count-revs {})))
+
+(defn docker-push
+  [_]
+  (process/exec
+   {:err :stdout}
+   "docker"
+   "buildx"
+   "build"
+   "."
+   "--platform"
+   "linux/arm64"
+   "-t"
+   (image-tag)
+   "--push"))
+
+(defn deploy
+  [_]
+  (uber nil)
+  (docker-push nil))
