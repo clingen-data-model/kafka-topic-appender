@@ -1,7 +1,9 @@
 (ns build
   "Build this thing."
   (:require [clojure.tools.build.api :as b]
-            [clojure.java.process :as process]))
+            [clojure.java.process :as process]
+            [clojure.data.json :as json]
+            [clojure.java.io :as io]))
 
 (def defaults
   "The defaults to configure a build."
