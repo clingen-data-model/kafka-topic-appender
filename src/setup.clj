@@ -22,6 +22,9 @@
 
   (kafka-admin/configure-kafka-for-app!
    (p/init appender/gv-appender-def))
+
+  (kafka-admin/admin-actions-by-cluster
+   (p/init appender/gv-appender-def))
   
   )
 
@@ -116,11 +119,11 @@
   (run! #(p/publish (get-in gv-setup [:topics :gene-validity-complete])
                    (prior-event->publish-fn %))
         (concat
-         (event-files "/users/tristan/data/genegraph/2023-11-07T1617/events/:gci-raw-snapshot")
-         (event-files "/users/tristan/data/genegraph/2023-11-07T1617/events/:gci-raw-missing-data")))
+         (event-files "/users/tristan/data/genegraph/events/:gci-raw-snapshot")
+         (event-files "/users/tristan/data/genegraph/events/:gci-raw-missing-data")))
   
   (count
    (concat
-    (event-files "/users/tristan/data/genegraph/2023-11-07T1617/events/:gci-raw-snapshot")
-    (event-files "/users/tristan/data/genegraph/2023-11-07T1617/events/:gci-raw-missing-data")))
+    (event-files "/users/tristan/data/genegraph/events/:gci-raw-snapshot")
+    (event-files "/users/tristan/data/genegraph/events/:gci-raw-missing-data")))
   )

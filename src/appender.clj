@@ -7,12 +7,23 @@
             [io.pedestal.log :as log])
   (:gen-class))
 
-(def env
-  (case (System/getenv "GENEGRAPH_PLATFORM")
+(def admin-env
+  (if (or (System/getenv "DX_JAAS_CONFIG_DEV")
+          (System/getenv "DX_JAAS_CONFIG")) ; prevent this in cloud deployments
+    {:platform "prod"
+     :dataexchange-genegraph (System/getenv "DX_JAAS_CONFIG")
+     :local-data-path "data/"}
+    {}))
+
+(def local-env
+  (case (or (:platform admin-env) (System/getenv "GENEGRAPH_PLATFORM"))
     "prod" (assoc (env/build-environment "974091131481" ["dataexchange-genegraph"])
                   :kafka-user "User:2592237"
-                  :kafka-consumer-group "genegraph-appender-1")
+                  :kafka-consumer-group "genegraph-appender-2")
     {:dataexchange-genegraph (System/getenv "DX_JAAS_CONFIG")}))
+
+(def env
+  (merge local-env admin-env))
 
 (def data-exchange
   {:type :kafka-cluster
@@ -69,7 +80,7 @@
 (def gene-validity-legacy-complete-topic
   {:name :gene-validity-legacy-complete
    :serialization :json
-   :kafka-topic "gene_validity_legacy_complete"
+   :kafka-topic "gene_validity_legacy_all"
    :kafka-cluster :data-exchange
    :kafka-topic-config {}})
 
@@ -78,7 +89,7 @@
    :kafka-cluster :data-exchange
    :serialization :json
    :buffer-size 5
-   :kafka-topic "gene_validity_complete"
+   :kafka-topic "gene_validity_all"
    :kafka-topic-config {}})
 
 (def gv-ready-server
